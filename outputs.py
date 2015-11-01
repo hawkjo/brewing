@@ -14,14 +14,14 @@ class OutputObject:
     def turn_on(self):
         if not self.is_on():
             GPIO.output(self.pin, True)
-            return 1
+            return 1  # True if changed
         else:
             return 0
 
     def turn_off(self):
         if self.is_on():
             GPIO.output(self.pin, False)
-            return 1
+            return 1  # True if changed
         else:
             return 0
 

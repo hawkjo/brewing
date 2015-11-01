@@ -32,7 +32,8 @@ def print_and_log(s):
 def format_time(seconds):
     m, s = divmod(seconds, 60)
     h, m = divmod(m, 60)
-    return "%d hours %d minutes %d seconds" % (h, m, s)
+    d, h = divmod(h, 24)
+    return "%d days %d hours %d minutes %d seconds" % (d, h, m, s)
 
 
 class Fermenter:
@@ -129,7 +130,7 @@ class Fermenter:
             time.sleep(2)
     
         # now to regulate the temperature:
-        if current_temp > (temp + 1):
+        if current_temp > (temp + 0.5):
             if self.fridge.turn_on():
                 print_and_log('turning on the fridge')
             else:

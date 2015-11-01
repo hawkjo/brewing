@@ -11,19 +11,11 @@ from apscheduler.scheduler import Scheduler # for checking the temperature at re
 import RPi.GPIO as GPIO  # for manipulating pins
 import outputs
 import thermometer
-from flashingled import FlashingLED
+import local_config
 
 # Record keeping
 import logging
 from emailing import send_email
-
-#--------------------------------------------------
-# Setup specific parameters
-PIN_MODE = GPIO.BCM
-FRIDGE_PIN = 17
-LED_PIN = 18  # Set to None if no led desired
-BREWING_TOP_DIR = '/home/pi/brewing'
-#--------------------------------------------------
 
 def print_and_log(s):
     print s
@@ -40,17 +32,17 @@ class Fermenter:
     def __init__(self, brew_dir='.'):
         os.chdir(brew_dir)
         self.name_of_brew = os.path.basename(os.getcwd())
-        assert os.getcwd() == os.path.join(BREWING_TOP_DIR, self.name_of_brew)
+        assert os.getcwd() == os.path.join(local_config.brewing_top_dir, self.name_of_brew)
 
         t_fname = 'temperature_profile.txt'
         self.times_and_temps = [map(float, line.strip().split()) for line in open(t_fname)
                                 if not line.strip().startswith('#')]
 
         self.therm = thermometer.Thermometer()
-        GPIO.setmode(PIN_MODE)
-        self.fridge = outputs.OutputObject(FRIDGE_PIN)
-        if LED_PIN is not None:
-            self.flashingled = FlashingLED(outputs.OutputObject(LED_PIN))
+        GPIO.setmode(local_config.pin_mode)
+        self.fridge = outputs.OutputObject(local_config.fridge_pin)
+        if local_config.led_pin is not None:
+            self.flashingled = outputs.FlashingLED(local_config.led_pin)
             self.flashingled.start()
 
         logging.basicConfig(filename='brew.log',

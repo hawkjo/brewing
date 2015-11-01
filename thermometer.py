@@ -82,6 +82,11 @@ class Thermometer:
         if fpath is None:
             fpath = 'temp_history.pdf'
         fig.savefig(fpath, bbox_inches='tight')
+
+        txt_fpath = fpath.replace('.pdf', '.txt')
+        with open(txt_fpath, 'w') as out:
+            out.write('\n'.join(['%g\t%g' % (tm, temp) for tm, temp in self.temp_history]))
+            
         return fpath
 
 

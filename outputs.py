@@ -2,6 +2,7 @@ import sys
 import RPi.GPIO as GPIO
 import threading
 import time
+import local_config
 
 
 class OutputObject(object):
@@ -68,8 +69,7 @@ class FlashingLED(OutputObject):
 
 
 if __name__ == '__main__':
-    from ferment import FRIDGE_PIN, LED_PIN, PIN_MODE
-    GPIO.setmode(PIN_MODE)
-    for pin in [LED_PIN, FRIDGE_PIN]:
+    GPIO.setmode(local_config.pin_mode)
+    for pin in [local_config.led_pin, local_config.fridge_pin]:
         thing = OutputObject(pin)
         thing.turn_off()

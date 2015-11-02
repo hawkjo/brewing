@@ -90,7 +90,7 @@ class Fermenter:
             self.recordAndRegulateTemp(duration, temp)
 
         print_and_log("Program done. Fermenter shutting down.")
-        self.send_email_with_graph("Ending. Fermenter is shutting off. Final temp history figure attched.")
+        self.send_email_with_graph("Ending. Fermenter is shutting off. Final temp history figure attached.")
         email_sched.unschedule_job(email_job)
         self.fridge.turn_off()
         self.flashingled.stop()
@@ -127,9 +127,14 @@ class Fermenter:
                 print_and_log('turning on the fridge')
             else:
                 print_and_log('fridge on and remaining on')
-        else:
+        elif current_temp < (temp):
             if self.fridge.turn_off():
                 print_and_log('turning off the fridge')
+            else:
+                print_and_log('fridge off and remaining off')
+        else:
+            if self.fridge.is_on():
+                print_and_log('fridge on and remaining on')
             else:
                 print_and_log('fridge off and remaining off')
 

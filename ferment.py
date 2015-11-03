@@ -122,12 +122,12 @@ class Fermenter:
             time.sleep(2)
     
         # now to regulate the temperature:
-        if current_temp > (temp + 0.5):
+        if current_temp > (temp + 1.0):
             if self.fridge.turn_on():
                 print_and_log('turning on the fridge')
             else:
                 print_and_log('fridge on and remaining on')
-        elif current_temp < (temp):
+        elif current_temp < (temp) - 0.25:
             if self.fridge.turn_off():
                 print_and_log('turning off the fridge')
             else:

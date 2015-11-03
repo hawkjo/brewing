@@ -1,0 +1,9 @@
+# Scheduling and emailing
+# see here: https://pythonadventures.wordpress.com/2013/08/06/apscheduler-examples/
+pip install apscheduler==2.1.2
+
+# Data storage. Using hdf5 files.
+sudo apt-get install python-dev
+sudo apt-get install libhdf5-serial-dev
+sudo pip install cython
+sudo pip install h5py

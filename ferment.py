@@ -2,16 +2,12 @@ import sys
 import time
 import os
 
-# Scheduling and emailing
-# use pip install apscheduler==2.1.2
-# see here: https://pythonadventures.wordpress.com/2013/08/06/apscheduler-examples/
-from apscheduler.scheduler import Scheduler # for checking the temperature at regular intervals
-
 # Control
-import RPi.GPIO as GPIO  # for manipulating pins
+import RPi.GPIO as GPIO
+import local_config
 import outputs
 import thermometer
-import local_config
+from apscheduler.scheduler import Scheduler # for emailing and checking temp at regular intervals
 
 # Record keeping
 import logging
@@ -29,15 +25,8 @@ def format_time(seconds):
 
 
 class Fermenter:
-    def __init__(self, brew_dir='.'):
-        os.chdir(brew_dir)
-        self.name_of_brew = os.path.basename(os.getcwd())
-        assert os.getcwd() == os.path.join(local_config.brewing_top_dir, self.name_of_brew)
-
-        t_fname = 'temperature_profile.txt'
-        self.times_and_temps = [map(float, line.strip().split()) for line in open(t_fname)
-                                if not line.strip().startswith('#')]
-
+    def __init__(self:
+        self.target_temp = self.get_target_temp()
         self.therm = thermometer.Thermometer()
         GPIO.setmode(local_config.pin_mode)
         self.fridge = outputs.OutputObject(local_config.fridge_pin)
@@ -50,26 +39,27 @@ class Fermenter:
                 format='%(asctime)s %(message)s',
                 datefmt='%m/%d/%Y %I:%M:%S %p')
 
-        self.plot_fname = '%s_temp_history.pdf' % self.name_of_brew
-
     def __del__(self):
         self.fridge.turn_off()
         self.flashingled.stop()
 
-    def send_email_with_graph(self, message):
-        attachment_fpath = self.therm.plot_temp_history(self.name_of_brew, self.plot_fname)
+    def get_target_temp(self):
+        """ Reads target temp from file.
+        
+            Target temp file must contain either a single scalar or the word 'off'.
+            """
+        for line in open(local_config.target_temp_fpath):
+            temp = line.strip()
+            if temp == 'off':
+                return temp
+            return float(temp)
+
+    def send_email_with_graph(self, message, title=''):
+        attachment_fpath = self.therm.plot_temp_history(title, 'email.pdf')
         send_email(message, attachment_fpath)
 
     def run(self):
-        # Print intentions
-        print_and_log('Starting run "%s"' % self.name_of_brew)
-        print
-        print_and_log('Intended Schedule:')
-        print_and_log('\t'.join(['Time(h)', 'Temp(F)']))
-        for time, temp in self.times_and_temps:
-            print_and_log('%g\t%g' % (time, temp))
-        print_and_log('Total time: %g hours' % sum(tm for tm, temp in self.times_and_temps))
-        print
+        print_and_log('Starting fermenter')
 
         # start email scheduler
         email_sched = Scheduler()
@@ -81,53 +71,33 @@ class Fermenter:
                 args=[text])
 
         # Starting main routing
-        send_email('Starting job %s' % self.name_of_brew)
+        send_email('Starting fermenter at %gF' % self.target_temp)
 
-        for duration, temp in self.times_and_temps:
-            text = "Changing temperature to %.2f for %.1f hours." % (temp, duration)
-            send_email(text)
-            print_and_log(text)
-            self.recordAndRegulateTemp(duration, temp)
-
-        print_and_log("Program done. Fermenter shutting down.")
-        self.send_email_with_graph("Ending. Fermenter is shutting off. Final temp history figure attached.")
-        email_sched.unschedule_job(email_job)
-        self.fridge.turn_off()
-        self.flashingled.stop()
-
-    def recordAndRegulateTemp(self, number_of_hours, temp):
-        sched = Scheduler()
-        sched.start()
-        self.my_job(temp)
-        job = sched.add_interval_job(self.my_job, minutes=5, args=[temp])
-    
-        start_time = time.time()
         while True:
-            time_left = (3600 * number_of_hours) - (time.time() - start_time)
-            if time_left <= 0:
-                break
-            text = "time left: %s\n" % format_time(time_left)
-            sys.stdout.write(text); sys.stdout.flush()
+            self.regulate_and_record_temp()
             time.sleep(60)
-    
-        sched.unschedule_job(job)
 
-    def my_job(self, temp):
+    def regulate_and_record_temp(self):
+        target_temp = self.get_target_temp()
+        if target_temp != self.target_temp:
+            send_email('Changing temperature from %gF to %gF' % (self.target_temp, target_temp))
+            self.target_temp = target_temp
         try:
             # try grabbing to current temp and writing it to the csv file
             current_temp = self.therm.read_temp()
-            print_and_log('temperature is %.2f (target %g)' % (current_temp, temp))
+            print_and_log('temperature is %.2f (target %g)' % (current_temp, self.target_temp))
+            self.temp_history.add_temp(time.time(), current_temp, self.target_temp)
         except: # send an email if you can't
             send_email("can't read the temperature")
             time.sleep(2)
     
         # now to regulate the temperature:
-        if current_temp > (temp + 1.0):
+        if current_temp > (self.target_temp + 1.0):
             if self.fridge.turn_on():
                 print_and_log('turning on the fridge')
             else:
                 print_and_log('fridge on and remaining on')
-        elif current_temp < (temp) - 0.25:
+        elif current_temp < (self.target_temp) - 0.25:
             if self.fridge.turn_off():
                 print_and_log('turning off the fridge')
             else:
@@ -140,12 +110,8 @@ class Fermenter:
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        brew_dir = '.'
-    elif len(sys.argv) == 2:
-        brew_dir = sys.argv[1]
-    else:
-        sys.exit('Usage: ferment.py [<directory>]')
+    if len(sys.argv) != 1, 
+        sys.exit('Usage: ferment.py')
 
-    fermenter = Fermenter(brew_dir)
+    fermenter = Fermenter()
     fermenter.run()

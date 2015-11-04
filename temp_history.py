@@ -167,9 +167,10 @@ class TempHistory(object):
                 color='b', linewidth = 0.60,label='fridge off')
         ax.plot(times, target_temps, '-.',
                 color='k', alpha=0.3, linewidth = 0.40, label='target')
-        for lm, lm_label in zip(landmarks, landmark_labels):
-            ax.plot([lm, lm], ax.get_ylim(), ':',
-                    color='r', alpha=0.3, linewidth=2, label=lm_label)
+        if landmarks is not None:
+            for lm, lm_label in zip(landmarks, landmark_labels):
+                ax.plot([lm, lm], ax.get_ylim(), ':',
+                        color='r', alpha=0.3, linewidth=2, label=lm_label)
         
         ax.set_xlabel("time (h)")
         ax.set_ylabel("temperature (f)")

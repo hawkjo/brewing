@@ -7,6 +7,7 @@ import RPi.GPIO as GPIO
 import local_config
 import outputs
 import thermometer
+from temp_history import TempHistory
 from apscheduler.scheduler import Scheduler # for emailing and checking temp at regular intervals
 
 # Record keeping
@@ -17,17 +18,16 @@ def print_and_log(s):
     print s
     logging.info(s)
 
-def format_time(seconds):
-    m, s = divmod(seconds, 60)
-    h, m = divmod(m, 60)
-    d, h = divmod(h, 24)
-    return "%d days %d hours %d minutes %d seconds" % (d, h, m, s)
 
 
 class Fermenter:
-    def __init__(self:
+    def __init__(self):
+        # Setup temperature input, control, and history
         self.target_temp = self.get_target_temp()
         self.therm = thermometer.Thermometer()
+        self.temp_history = TempHistory(local_config.temp_history_fpath)
+
+        # Setup outputs
         GPIO.setmode(local_config.pin_mode)
         self.fridge = outputs.OutputObject(local_config.fridge_pin)
         if local_config.led_pin is not None:
@@ -55,12 +55,14 @@ class Fermenter:
             return float(temp)
 
     def send_email_with_graph(self, message, title=''):
-        attachment_fpath = self.therm.plot_temp_history(title, 'email.pdf')
+        start = -12 * 60 * 60
+        attachment_fpath = self.temp_history.plot_temp_history(
+            start,
+            -1,
+            annotation=title)
         send_email(message, attachment_fpath)
 
     def run(self):
-        print_and_log('Starting fermenter')
-
         # start email scheduler
         email_sched = Scheduler()
         email_sched.start()
@@ -83,10 +85,9 @@ class Fermenter:
             send_email('Changing temperature from %gF to %gF' % (self.target_temp, target_temp))
             self.target_temp = target_temp
         try:
-            # try grabbing to current temp and writing it to the csv file
+            # try grabbing to current temp
             current_temp = self.therm.read_temp()
-            print_and_log('temperature is %.2f (target %g)' % (current_temp, self.target_temp))
-            self.temp_history.add_temp(time.time(), current_temp, self.target_temp)
+            stat_str = '%.2f (%g)' % (current_temp, self.target_temp)
         except: # send an email if you can't
             send_email("can't read the temperature")
             time.sleep(2)
@@ -94,23 +95,28 @@ class Fermenter:
         # now to regulate the temperature:
         if current_temp > (self.target_temp + 1.0):
             if self.fridge.turn_on():
-                print_and_log('turning on the fridge')
+                stat_str += ' off->on'
             else:
-                print_and_log('fridge on and remaining on')
+                stat_str += ' on'
+                if current_temp > (self.target_temp + 2.0):
+                    self.send_email_with_graph('Warning: High Temperatures Unchecked')
+                    stat_str += '\nWarning: High Temperatures Unchecked'
         elif current_temp < (self.target_temp) - 0.25:
             if self.fridge.turn_off():
-                print_and_log('turning off the fridge')
+                stat_str += ' on->off'
             else:
-                print_and_log('fridge off and remaining off')
+                stat_str += ' off'
         else:
             if self.fridge.is_on():
-                print_and_log('fridge on and remaining on')
+                stat_str += ' on'
             else:
-                print_and_log('fridge off and remaining off')
+                stat_str += ' off'
 
+        print_and_log(stat_str)
+        self.temp_history.add_temp(time.time(), current_temp, self.target_temp, self.fridge.is_on())
 
 if __name__ == '__main__':
-    if len(sys.argv) != 1, 
+    if len(sys.argv) != 1:
         sys.exit('Usage: ferment.py')
 
     fermenter = Fermenter()

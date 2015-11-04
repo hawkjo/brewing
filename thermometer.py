@@ -19,7 +19,6 @@ class Thermometer:
         device_folder = glob.glob(base_dir + '28*')[0]
         self.device_file = device_folder + '/w1_slave'
 
-        self.temp_history = []
         self.log = log
         if self.log:
 	    logging.basicConfig(
@@ -46,49 +45,9 @@ class Thermometer:
             temp_string = lines[1][equals_pos+2:]
             temp_c = float(temp_string) / 1000.0
             temp_f = temp_c * 9.0 / 5.0 + 32.0
-            self.temp_history.append((time.time(), temp_f))
             if self.log:
                 logging.info('%.2f F' % temp_f)
             return temp_f
-
-    def plot_temp_history(self, annotation=None, fpath=None):
-        times = np.asarray([(tm-self.temp_history[0][0])/3600.0 for tm, temp in self.temp_history])
-        temps = np.asarray([temp for tm, temp in self.temp_history])
-    
-        window_size = int(0.06*temps.shape[0])
-        if window_size % 2 != 0:
-            window_size = window_size + 1
-    
-        average_times, average_temps = [], []
-        for i in range(window_size/2, (temps.shape[0] - window_size/2)):
-            average_times.append(np.mean(times[i-(window_size/2):i+(window_size/2)]))
-            average_temps.append(np.mean(temps[i-(window_size/2):i+(window_size/2)]))
-    
-        fig, ax = plt.subplots(figsize=(10, 7))
-        ax.plot(times, temps,
-                color='#3E4A89', alpha=0.6, linewidth = 0.60,label="raw temperature data")
-        ax.plot(average_times, average_temps,
-                color='#3E4A89', linewidth = 2.0,
-                label="sliding window average. window size of "+str(window_size))
-        
-        ax.set_xlabel("time (h)")
-        ax.set_ylabel("temperature (f)")
-        ax.legend(loc='best', fancybox=True,prop={'size':10})
-        title = "raw and smoothed temperature data"
-        if annotation:
-            title = '\n'.join([annotation, title])
-        ax.set_title(title)
-    
-        if fpath is None:
-            fpath = 'temp_history.pdf'
-        fig.savefig(fpath, bbox_inches='tight')
-
-        txt_fpath = fpath.replace('.pdf', '.txt')
-        with open(txt_fpath, 'w') as out:
-            out.write('\n'.join(['%g\t%g' % (tm, temp) for tm, temp in self.temp_history]))
-            
-        return fpath
-
 
 if __name__ == "__main__":
     therm = Thermometer()

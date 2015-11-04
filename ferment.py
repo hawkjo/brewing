@@ -56,11 +56,10 @@ class Fermenter:
 
     def send_email_with_graph(self, message, title=''):
         start = -12 * 60 * 60
-        attachment_fpath = self.temp_history.plot_temp_history(
-            start,
-            -1,
-            annotation=title)
-        send_email(message, attachment_fpath)
+        self.temp_history.plot_temp_history(
+            start=start,
+            title=title,
+            email=True)
 
     def run(self):
         # start email scheduler

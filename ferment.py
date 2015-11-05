@@ -8,7 +8,6 @@ import local_config
 import outputs
 import thermometer
 from temp_history import TempHistory
-from apscheduler.scheduler import Scheduler # for emailing and checking temp at regular intervals
 
 # Record keeping
 from emailing import send_email
@@ -43,7 +42,7 @@ class Fermenter:
                 return temp
             return float(temp)
 
-    def send_email_with_graph(self, message, title=''):
+    def send_email_with_graph(self, title=''):
         start = -12 * 60 * 60
         self.temp_history.plot_temp_history(
             start=start,
@@ -51,15 +50,6 @@ class Fermenter:
             email=True)
 
     def run(self):
-        # start email scheduler
-        email_sched = Scheduler()
-        email_sched.start()
-        text = "It's been twelve hours. Here are the latest temperature readings from your new brew"
-        email_job = email_sched.add_interval_job(
-                self.send_email_with_graph,
-                hours=12,
-                args=[text])
-
         # Starting main routing
         send_email('Starting fermenter at %gF' % self.target_temp)
 
@@ -87,8 +77,8 @@ class Fermenter:
             else:
                 stat_str += ' on'
                 if current_temp > (self.target_temp + 2.0):
-                    self.send_email_with_graph('Warning: High Temperatures Unchecked')
-                    stat_str += '\nWarning: High Temperatures Unchecked'
+                    self.send_email_with_graph('Warning: High Temperatures')
+                    stat_str += '\tWarning: High Temperatures'
         elif current_temp < (self.target_temp) - 0.25:
             if self.fridge.turn_off():
                 stat_str += ' on->off'

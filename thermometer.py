@@ -1,7 +1,6 @@
 import time
 import os
 import glob
-import logging
 
 # Plotting
 import numpy as np
@@ -11,21 +10,13 @@ import matplotlib.pyplot as plt
 
 
 class Thermometer:
-    def __init__(self, log=True):
+    def __init__(self):
         # Set up the temperature probe
         os.system('modprobe w1-gpio')
         os.system('modprobe w1-therm')
         base_dir = '/sys/bus/w1/devices/'
         device_folder = glob.glob(base_dir + '28*')[0]
         self.device_file = device_folder + '/w1_slave'
-
-        self.log = log
-        if self.log:
-	    logging.basicConfig(
-                    filename='temperature.log',
-                    level=logging.DEBUG,
-                    format='%(asctime)s %(message)s',
-                    datefmt='%m/%d/%Y %I:%M:%S %p')
 
     def read_temp_raw(self):
         """Read the raw temperatures"""
@@ -45,8 +36,6 @@ class Thermometer:
             temp_string = lines[1][equals_pos+2:]
             temp_c = float(temp_string) / 1000.0
             temp_f = temp_c * 9.0 / 5.0 + 32.0
-            if self.log:
-                logging.info('%.2f F' % temp_f)
             return temp_f
 
 if __name__ == "__main__":

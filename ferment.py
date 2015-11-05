@@ -11,13 +11,7 @@ from temp_history import TempHistory
 from apscheduler.scheduler import Scheduler # for emailing and checking temp at regular intervals
 
 # Record keeping
-import logging
 from emailing import send_email
-
-def print_and_log(s):
-    print s
-    logging.info(s)
-
 
 
 class Fermenter:
@@ -33,11 +27,6 @@ class Fermenter:
         if local_config.led_pin is not None:
             self.flashingled = outputs.FlashingLED(local_config.led_pin)
             self.flashingled.start()
-
-        logging.basicConfig(filename='brew.log',
-                level=logging.DEBUG,
-                format='%(asctime)s %(message)s',
-                datefmt='%m/%d/%Y %I:%M:%S %p')
 
     def __del__(self):
         self.fridge.turn_off()
@@ -111,7 +100,7 @@ class Fermenter:
             else:
                 stat_str += ' off'
 
-        print_and_log(stat_str)
+        print stat_str
         self.temp_history.add_temp(time.time(), current_temp, self.target_temp, self.fridge.is_on())
 
 if __name__ == '__main__':

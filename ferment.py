@@ -36,7 +36,7 @@ class Fermenter:
         
             Target temp file must contain either a single scalar or the word 'off'.
             """
-        for line in open(local_config.target_temp_fpath):
+        for line in open('.target_temp'):
             temp = line.strip()
             if temp == 'off':
                 return temp

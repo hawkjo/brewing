@@ -9,6 +9,24 @@ import matplotlib.pyplot as plt
 from emailing import send_email
 
 
+def format_time(seconds):
+    m, s = divmod(seconds, 60)
+    h, m = divmod(m, 60)
+    d, h = divmod(h, 24)
+    w, d = divmod(d, 7)
+    out = ''
+    if w:
+        out += '%d wks ' % w
+    if d:
+        out += '%d dys ' % d
+    if h:
+        out += '%d hrs ' % h
+    if m:
+        out += '%d min ' % m
+    if s:
+        out += '%d sec' % s
+    return out
+
 class TempHistory(object):
     """ Records temperature history: time, temp, target temp, fridge state.
         
@@ -134,17 +152,14 @@ class TempHistory(object):
         history = np.delete(history, bad_idxs, axis=0)
 
         times = history[:, 0]
-        if landmarks is not None:
-            landmarks = [(lm - times[0]) / 3600.0 for lm in landmarks]
-            if landmark_labels is None:
-                landmark_labels = [None for lm in landmarks]
-            else:
-                assert len(landmarks) == len(landmark_labels)
-        times = (times - times[0]) / 3600.0
-
         temps = history[:, 1]
         target_temps = history[:, 2]
         fridge_states = history[:, 3]
+
+        label_idxs = np.linspace(0, len(times)-1, 4).astype(int)
+        label_times = times[label_idxs]
+        label_fmt = '%I:%M %p\n%m/%d/%y'
+        labels = [time.strftime(label_fmt, time.localtime(t)) for t in label_times]
 
         state = fridge_states[0]
         on_temps, off_temps = [], []
@@ -162,21 +177,30 @@ class TempHistory(object):
 
         fig, ax = plt.subplots(figsize=(10, 7))
         ax.plot(times, on_temps,
-                color='b', linewidth = 1.60,label='fridge on')
+                color='b', linewidth = 2,label='fridge on')
         ax.plot(times, off_temps,
                 color='b', linewidth = 0.60,label='fridge off')
         ax.plot(times, target_temps, '-.',
                 color='k', alpha=0.3, linewidth = 0.40, label='target')
         if landmarks is not None:
+            if landmark_labels is None:
+                landmark_labels = [None for lm in landmarks]
+            else:
+                assert len(landmarks) == len(landmark_labels)
             for lm, lm_label in zip(landmarks, landmark_labels):
                 ax.plot([lm, lm], ax.get_ylim(), ':',
                         color='r', alpha=0.3, linewidth=2, label=lm_label)
         
-        ax.set_xlabel("time (h)")
+        ax.set_xticks(label_times)
+        ax.set_xticklabels(labels)
+        ax.set_xlabel("time")
         ax.set_ylabel("temperature (f)")
         ax.legend(loc='best', fancybox=True,prop={'size':10})
         if title:
-            ax.set_title(title)
+            title += '\n%s' % (format_time(times[-1] - times[0]))
+        else:
+            title = '%s' % (format_time(times[-1] - times[0]))
+        ax.set_title(title)
     
         if fpath is None:
             fpath = os.path.splitext(self.filename)[0] + '.pdf'

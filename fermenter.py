@@ -45,13 +45,6 @@ class Fermenter:
                 return temp
             return float(temp)
 
-    def send_email_with_graph(self, title=''):
-        start = -12 * 60 * 60
-        self.temp_history.plot_temp_history(
-            start=start,
-            title=title,
-            email=True)
-
     def run(self):
         # Starting main routing
         send_email('Starting fermenter at %gF' % self.target_temp)

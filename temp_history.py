@@ -140,6 +140,7 @@ class TempHistory(object):
             stop=None,
             step=1,
             title=None,
+            subject=None,
             event_times=None,
             event_labels=None,
             fpath=None,
@@ -205,6 +206,6 @@ class TempHistory(object):
         fig.savefig(fpath, bbox_inches='tight')
 
         if email:
-            send_email('Temperature history.', attachment_fpath=fpath)
+            send_email('Temperature history.', attachment_fpath=fpath, subject=subject)
 
         return fpath

@@ -20,6 +20,8 @@ class Fermenter:
         self.target_temp = self.get_target_temp()
         self.therm = thermometer.Thermometer()
         self.temp_history = TempHistory(local_config.temp_history_fpath)
+        self.state = 'normal'
+        self.last_state_change_time = time.time()
 
         # Setup outputs
         GPIO.setmode(local_config.pin_mode)
@@ -72,19 +74,24 @@ class Fermenter:
             time.sleep(2)
     
         # now to regulate the temperature:
-        if current_temp > (self.target_temp + 1.0):
+        if current_temp > self.target_temp + 1.0:
             if self.fridge.turn_on():
                 stat_str += ' off->on'
+                self.set_state('normal')
             else:
                 stat_str += ' on'
-                if current_temp > (self.target_temp + 2.0):
-                    self.send_email_with_graph('Warning: High Temperatures')
+                if current_temp > self.target_temp + 2.0:
                     stat_str += '\tWarning: High Temperatures'
-        elif current_temp < (self.target_temp) - 0.25:
+                    self.set_state('high_temp')
+        elif current_temp < self.target_temp - 0.25:
             if self.fridge.turn_off():
                 stat_str += ' on->off'
+                self.set_state('normal')
             else:
                 stat_str += ' off'
+                if current_temp < self.target_temp - 2.0:
+                    stat_str += '\tWarning: Low Temperatures'
+                    self.set_state('low_temp')
         else:
             if self.fridge.is_on():
                 stat_str += ' on'
@@ -94,6 +101,44 @@ class Fermenter:
         print stat_str
         self.temp_history.add_temp(time.time(), current_temp, self.target_temp, self.fridge.is_on())
 
+    def set_state(self, state):
+        assert state in ['high_temp', 'low_temp', 'normal'], state
+        if self.state == state == 'normal':
+            return
+        elif self.state != state:
+            self.last_state_change_time = time.time()
+        self.state = state
+
+        if state == 'normal':
+            subject = 'Returned to Normal Operation'
+            title = 'State: Normal Operation'
+            event_times = None
+            event_labels = None
+        elif state == 'high_temp':
+            subject = 'Warning: High Temp'
+            title = 'State: High Temp'
+            event_times = [self.last_state_change_time],
+            event_labels = ['High Temp Begun']
+        else:
+            subject = 'Warning: Low Temp'
+            title = 'State: Low Temp'
+            event_times = [self.last_state_change_time],
+            event_labels = ['Low Temp Begun']
+
+        # Send updates roughly logarithmically in time for the first day, then once a day
+        min_since_last_change = int(time.time() - self.last_state_change_time) / 60
+        times_to_contact = [0, 5, 10, 20] + range(30, 6*60, 30) + range(6*60, 24*60, 60)
+        if min_since_last_change in times_to_contact or min_since_last_change % 24 * 60 == 0:
+            # Send email with temp graph since state change and previous 12 hours
+            start = self.last_state_change_time - 12 * 60 * 60 
+            self.temp_history.plot_temp_history(
+                    start=start,
+                    stop=None,
+                    subject=subject,
+                    title=title,
+                    event_times=event_times,
+                    event_labels=event_labels,
+                    email=True)
 
 def set_target_temp(temp):
     if temp != 'off':

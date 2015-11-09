@@ -9,12 +9,19 @@ fromaddr = "lukesfermenter@gmail.com"
 passwd = "dubbeltrouble"
 toaddr = "hawkjo@gmail.com"
      
-def send_email(message, attachment_fpath=None):
+def send_email(
+        message,
+        attachment_fpath=None,
+        subject=None,
+        ):
+    if subject is None:
+        subject = "A message from your fermenter"
+
     msg = MIMEMultipart()
      
     msg['From'] = fromaddr
     msg['To'] = toaddr
-    msg['Subject'] = "a message from your fermenter"
+    msg['Subject'] = subject
      
     body = message
     msg.attach(MIMEText(body, 'plain'))

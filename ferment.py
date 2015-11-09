@@ -1,6 +1,7 @@
 import sys
 import time
 import os
+import shutil
 
 # Control
 import RPi.GPIO as GPIO
@@ -93,9 +94,35 @@ class Fermenter:
         print stat_str
         self.temp_history.add_temp(time.time(), current_temp, self.target_temp, self.fridge.is_on())
 
-if __name__ == '__main__':
-    if len(sys.argv) != 1:
-        sys.exit('Usage: ferment.py')
 
-    fermenter = Fermenter()
-    fermenter.run()
+def set_target_temp(temp):
+    if temp != 'off':
+        assert 45 <= temp <= 80, 'Target temp out of range [45, 80]: %g' % temp
+    with open('.tmp', 'w') as out:
+        out.write(str(temp))
+    shutil.move('.tmp', '.target_temp')
+    print 'Temperature successfully set to', temp
+
+
+if __name__ == '__main__':
+    usage = """
+fermenter.py action [args]
+
+Actions:
+    start
+    set_target_temp <temp_F/off>
+"""
+    assert len(sys.argv) > 1, usage
+    action = sys.argv[1]
+
+    if action == 'start':
+        assert len(sys.argv) == 2, usage
+        fermenter = Fermenter()
+        fermenter.run()
+    elif action == 'set_target_temp':
+        assert len(sys.argv) == 3, usage
+        if sys.argv[1].lower() == 'off':
+            temp = 'off'
+        else:
+            temp = float(sys.argv[1])
+        set_target_temp(temp)

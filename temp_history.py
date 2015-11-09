@@ -10,22 +10,20 @@ from emailing import send_email
 
 
 def format_time(seconds):
-    m, s = divmod(seconds, 60)
-    h, m = divmod(m, 60)
+    h = seconds / 3600.0
     d, h = divmod(h, 24)
     w, d = divmod(d, 7)
-    out = ''
-    if w:
-        out += '%d weeks ' % w
-    if d:
-        out += '%d days ' % d
-    if h:
-        out += '%d hours ' % h
-    if m:
-        out += '%d min ' % m
-    if s:
-        out += '%d sec' % s
-    return out
+    time_strs = []
+    for v, name in [(w, 'week'),
+                    (d, 'day'), 
+                    (h, 'hour')]:
+        if v == 0:
+            continue
+        elif v == 1:
+            time_strs.append('1 %s' % name)
+        else:
+            time_strs.append('%.2g %ss' % (v, name))
+    return ' '.join(time_strs)
 
 class TempHistory(object):
     """ Records temperature history: time, temp, target temp, fridge state.

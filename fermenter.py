@@ -55,18 +55,38 @@ class Fermenter:
 
     def regulate_and_record_temp(self):
         target_temp = self.get_target_temp()
+        # case where target temp is off
+        if self.target_temp == 'off':
+            if target_temp != self.target_temp:
+                send_email('Changing temperature from %gF to off' % (self.target_temp))
+                self.target_temp = target_temp
+
+            self.set_state('normal')
+            if self.fridge.turn_off():
+                stat_str += ' on->off'
+            else:
+                stat_str += ' off'
+            print stat_str
+            self.temp_history.add_temp(time.time(), current_temp, -1, self.fridge.is_on())
+            return
+
+        # Active target_temp
         if target_temp != self.target_temp:
-            send_email('Changing temperature from %gF to %gF' % (self.target_temp, target_temp))
+            if self.target_temp == 'off':
+                old_target = 'off'
+            else:
+                old_target = '%gF' % self.target_temp
+            send_email('Changing temperature from %s to %gF' % (old_target, target_temp))
             self.target_temp = target_temp
-        try:
-            # try grabbing to current temp
+
+        try:        # try grabbing the current temp
             current_temp = self.therm.read_temp()
             stat_str = '%.2f (%g)' % (current_temp, self.target_temp)
-        except: # send an email if you can't
+        except:     # send an email if you can't
             send_email("can't read the temperature")
             time.sleep(2)
-    
-        # now to regulate the temperature:
+
+        # regulate the temperature:
         if current_temp > self.target_temp + 1.0:
             if self.fridge.turn_on():
                 stat_str += ' off->on'
@@ -76,6 +96,7 @@ class Fermenter:
                 if current_temp > self.target_temp + 2.0:
                     stat_str += '\tWarning: High Temperatures'
                     self.set_state('high_temp')
+
         elif current_temp < self.target_temp - 0.25:
             if self.fridge.turn_off():
                 stat_str += ' on->off'
@@ -85,6 +106,7 @@ class Fermenter:
                 if current_temp < self.target_temp - 2.0:
                     stat_str += '\tWarning: Low Temperatures'
                     self.set_state('low_temp')
+
         else:
             if self.fridge.is_on():
                 stat_str += ' on'

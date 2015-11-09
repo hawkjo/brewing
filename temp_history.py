@@ -16,11 +16,11 @@ def format_time(seconds):
     w, d = divmod(d, 7)
     out = ''
     if w:
-        out += '%d wks ' % w
+        out += '%d weeks ' % w
     if d:
-        out += '%d dys ' % d
+        out += '%d days ' % d
     if h:
-        out += '%d hrs ' % h
+        out += '%d hours ' % h
     if m:
         out += '%d min ' % m
     if s:
@@ -142,8 +142,8 @@ class TempHistory(object):
             stop=None,
             step=1,
             title=None,
-            landmarks=None,
-            landmark_labels=None,
+            event_times=None,
+            event_labels=None,
             fpath=None,
             email=False):
         history = self[start:stop:step]
@@ -180,16 +180,16 @@ class TempHistory(object):
                 color='b', linewidth = 2,label='fridge on')
         ax.plot(times, off_temps,
                 color='b', linewidth = 0.60,label='fridge off')
-        ax.plot(times, target_temps, '-.',
+        ax.plot(times, target_temps, '--',
                 color='k', alpha=0.3, linewidth = 0.40, label='target')
-        if landmarks is not None:
-            if landmark_labels is None:
-                landmark_labels = [None for lm in landmarks]
+        if event_times is not None:
+            if event_labels is None:
+                event_labels = [None for ev in event_times]
             else:
-                assert len(landmarks) == len(landmark_labels)
-            for lm, lm_label in zip(landmarks, landmark_labels):
-                ax.plot([lm, lm], ax.get_ylim(), ':',
-                        color='r', alpha=0.3, linewidth=2, label=lm_label)
+                assert len(event_times) == len(event_labels)
+            for ev, ev_label in zip(event_times, event_labels):
+                ax.plot([ev, ev], ax.get_ylim(), '-.',
+                        alpha=0.5, linewidth=2, label=ev_label)
         
         ax.set_xticks(label_times)
         ax.set_xticklabels(labels)
@@ -203,7 +203,7 @@ class TempHistory(object):
         ax.set_title(title)
     
         if fpath is None:
-            fpath = os.path.splitext(self.filename)[0] + '.pdf'
+            fpath = os.path.splitext(self.filename)[0] + '.png'
         fig.savefig(fpath, bbox_inches='tight')
 
         if email:

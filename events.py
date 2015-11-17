@@ -34,14 +34,15 @@ def add_brew(brew_id, brew_name):
         out.write('\t'.join([brew_id, brew_name]) + '\n')
 
 
-def list_brews(time_frame='recent'):
-    def is_recent(brew_id):
-        brew_year = int(brew_id[-6:-2])
-        brew_month = int(brew_id[-2:])
-        now_year, now_month = time.localtime()[:2]
-        return bool((brew_year == now_year and brew_month >= now_month - 3)
+def is_recent(brew_id):
+    brew_year = int(brew_id[-6:-2])
+    brew_month = int(brew_id[-2:])
+    now_year, now_month = time.localtime()[:2]
+    return bool((brew_year == now_year and brew_month >= now_month - 3)
                     or (brew_year == now_year - 1 and brew_month >= now_month - 3 + 12))
 
+
+def list_brews(time_frame='recent'):
     print
     for line in open(local_config.brew_id_fpath):
         var = line.strip().split()
@@ -87,6 +88,15 @@ def event_time(brew_id, event):
     events = get_events()
     return events[brew_id][event]
 
+def list_brew_events(brew_id):
+    brew_events = get_brew_events(brew_id)
+    print get_brew_name(brew_id)
+    if not brew_events:
+        print 'No events'
+        return
+    for event_name, when in sorted(brew_events.items(), key=lambda tup: tup[1]):
+        print event_name.ljust(20), time.strftime('%m/%d/%y %I:%M %p', time.localtime(when))
+
 if __name__ == '__main__':
     usage = """
 events.py action [args]
@@ -98,6 +108,8 @@ Actions:
     brew_out <brew_id>
     brew_racked <brew_id>
     add_brew_event <brew_id> <event> [MM/DD/YY HH:MM AM/PM]
+    list_brew_events <brew_id>
+    list_recent_brew_events
 """
     if len(sys.argv) == 1:
         sys.exit(usage)
@@ -145,3 +157,20 @@ Actions:
             assert len(sys.argv) == 7, usage
             when = ' '.join(sys.argv[4:])
             add_brew_event(brew_id, event, when)
+
+    elif action == 'list_brew_events':
+        assert len(sys.argv) == 3, usage
+        brew_id = sys.argv[2]
+        list_brew_events(brew_id)
+
+    elif action == 'list_recent_brew_events':
+        assert len(sys.argv) == 2, usage
+        brew_ids = [brew_id for brew_id in get_brew_ids() if is_recent(brew_id)]
+        events = get_events()
+        brew_ids.sort(key=lambda brew_id: events[brew_id]['in'])
+        for brew_id in brew_ids:
+                print
+                list_brew_events(brew_id)
+
+    else:
+        print usage

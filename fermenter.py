@@ -56,7 +56,7 @@ class Fermenter:
     def regulate_and_record_temp(self):
         target_temp = self.get_target_temp()
         if target_temp != self.target_temp:
-            temps = tuple(['off' if t == 'off' else '%gF' for t in (self.target_temp, target_temp)])
+            temps = tuple(['off' if t == 'off' else '%gF' % t for t in (self.target_temp, target_temp)])
             send_email('Changing temperature from %s to %s' % temps)
             self.target_temp = target_temp
 
@@ -89,7 +89,7 @@ class Fermenter:
                     stat_str += '\tWarning: High Temperatures'
                     self.set_state('high_temp')
 
-        elif current_temp < self.target_temp - 0.25:
+        elif current_temp < self.target_temp - 0.75:
             if self.fridge.turn_off():
                 stat_str += ' on->off'
                 self.set_state('normal')
@@ -176,5 +176,5 @@ Actions:
         if sys.argv[1].lower() == 'off':
             temp = 'off'
         else:
-            temp = float(sys.argv[1])
+            temp = float(sys.argv[2])
         set_target_temp(temp)

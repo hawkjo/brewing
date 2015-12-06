@@ -1,3 +1,4 @@
 *.pyc
 *.swp
 target_temp.txt
+.target_temp

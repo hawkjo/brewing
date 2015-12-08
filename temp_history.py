@@ -116,7 +116,10 @@ class TempHistory(object):
                 if int(dset_name['start']) > int(dset_name['stop']):
                     return None
                 elif dset_name['start'] == dset_name['stop']:
-                    res = f[dset_name['start']][entry['start'] : entry['stop'] + 1]
+                    if entry['start'] <= entry['stop']:
+                        res = f[dset_name['start']][entry['start'] : entry['stop'] + 1]
+                    else:
+                        res = f[dset_name['start']][entry['stop'] : entry['stop'] + 1]
                 else:
                     # Collect all entries from disparate data sets
                     res = f[dset_name['start']][entry['start']:]

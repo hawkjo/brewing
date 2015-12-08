@@ -89,7 +89,7 @@ class Fermenter:
                     stat_str += '\tWarning: High Temperatures'
                     self.set_state('high_temp')
 
-        elif current_temp < self.target_temp - 0.75:
+        elif current_temp < self.target_temp - 0.05:
             if self.fridge.turn_off():
                 stat_str += ' on->off'
                 self.set_state('normal')

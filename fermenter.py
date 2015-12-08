@@ -135,7 +135,7 @@ class Fermenter:
         # Send updates roughly logarithmically in time for the first day, then once a day
         min_since_last_change = int(time.time() - self.last_state_change_time) / 60
         times_to_contact = [0, 5, 10, 20] + range(30, 6*60, 30) + range(6*60, 24*60, 60)
-        if min_since_last_change in times_to_contact or min_since_last_change % 24 * 60 == 0:
+        if min_since_last_change in times_to_contact or min_since_last_change % (24 * 60) == 0:
             # Send email with temp graph since state change and previous 12 hours
             start = self.last_state_change_time - 12 * 60 * 60 
             self.temp_history.plot_temp_history(
